@@ -1,0 +1,55 @@
+name: Pipeline
+
+# Manually triggered for now - this pretends to build & deploy the
+# application, then emits a "just deployed" event to the org's event
+# handler via the shared notify-deployment action.
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to deploy to
+        type: choice
+        required: true
+        default: staging
+        options:
+          - dev
+          - staging
+          - production
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build application (fictional)
+        run: |
+          echo "Building example-project-1..."
+          echo "Build complete."
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.deploy.outputs.version }}
+    steps:
+      - name: Deploy application (fictional)
+        id: deploy
+        run: |
+          VERSION="1.0.${GITHUB_RUN_NUMBER}"
+          echo "Deploying example-project-1 version ${VERSION} to ${{ inputs.environment }}..."
+          echo "Deploy complete."
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+  notify:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify event handler of deployment
+        uses: steve-sre-event-playground/shared-workflows-actions/.github/actions/notify-deployment@main
+        with:
+          application: example-project-1
+          environment: ${{ inputs.environment }}
+          version: ${{ needs.deploy.outputs.version }}
+          commit-sha: ${{ github.sha }}
+          token: ${{ secrets.SRE_EVENTMANAGER_CLIENT_SECRET }}
