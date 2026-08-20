@@ -52,4 +52,5 @@ jobs:
           environment: ${{ inputs.environment }}
           version: ${{ needs.deploy.outputs.version }}
           commit-sha: ${{ github.sha }}
-          token: ${{ secrets.SRE_EVENTMANAGER_CLIENT_SECRET }}
+          app-id: ${{ secrets.SRE_EVENTMANAGER_APP_ID }}
+          app-private-key: ${{ secrets.SRE_EVENTMANAGER_PRIVATE_KEY }}
