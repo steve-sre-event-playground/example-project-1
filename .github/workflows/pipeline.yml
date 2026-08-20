@@ -27,7 +27,7 @@ jobs:
       artifact-name: ${{ steps.build.outputs.artifact-name }}
       artifact-digest: ${{ steps.build.outputs.artifact-digest }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Build application (fictional)
         id: build
@@ -42,7 +42,7 @@ jobs:
 
       - name: Generate build provenance attestation
         id: attest
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: ${{ steps.build.outputs.artifact-name }}
 
