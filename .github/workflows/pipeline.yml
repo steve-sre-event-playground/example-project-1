@@ -19,13 +19,32 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    outputs:
+      artifact-name: ${{ steps.build.outputs.artifact-name }}
+      artifact-digest: ${{ steps.build.outputs.artifact-digest }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Build application (fictional)
+        id: build
         run: |
           echo "Building example-project-1..."
-          echo "Build complete."
+          ARTIFACT_NAME="example-project-1-${GITHUB_RUN_NUMBER}.tar.gz"
+          tar -czf "${ARTIFACT_NAME}" README.md
+          DIGEST="sha256:$(sha256sum "${ARTIFACT_NAME}" | cut -d' ' -f1)"
+          echo "Build complete: ${ARTIFACT_NAME} (${DIGEST})"
+          echo "artifact-name=${ARTIFACT_NAME}" >> "$GITHUB_OUTPUT"
+          echo "artifact-digest=${DIGEST}" >> "$GITHUB_OUTPUT"
+
+      - name: Generate build provenance attestation
+        id: attest
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: ${{ steps.build.outputs.artifact-name }}
 
   deploy:
     needs: build
@@ -42,7 +61,7 @@ jobs:
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
   notify:
-    needs: deploy
+    needs: [build, deploy]
     runs-on: ubuntu-latest
     steps:
       - name: Notify event handler of deployment
@@ -52,5 +71,7 @@ jobs:
           environment: ${{ inputs.environment }}
           version: ${{ needs.deploy.outputs.version }}
           commit-sha: ${{ github.sha }}
+          artifact-name: ${{ needs.build.outputs.artifact-name }}
+          artifact-digest: ${{ needs.build.outputs.artifact-digest }}
           app-id: ${{ secrets.SRE_EVENTMANAGER_APP_ID }}
           app-private-key: ${{ secrets.SRE_EVENTMANAGER_PRIVATE_KEY }}
